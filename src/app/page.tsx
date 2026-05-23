@@ -4,10 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePinGuard } from '@/hooks/usePinGuard';
 import PinGate from '@/components/PinGate';
-
-declare global {
-  interface Window { Swal: any; }
-}
+import Swal from 'sweetalert2';
 
 export default function Home() {
   const { authed, checking, pin, setPin, error, loading, submitPin } = usePinGuard();
@@ -22,7 +19,7 @@ export default function Home() {
   useEffect(() => { fetchCustomers(); }, []);
 
   const handleDelete = async (slug: string, name: string) => {
-    const result = await window.Swal.fire({
+    const result = await Swal.fire({
       title: `Hapus klien "${name}"?`,
       text: 'Semua data akan terhapus permanen!',
       icon: 'warning',
@@ -37,7 +34,7 @@ export default function Home() {
     if (result.isConfirmed) {
       await fetch(`/api/customer/${slug}`, { method: 'DELETE' });
       fetchCustomers();
-      window.Swal.fire({ title: 'Terhapus!', icon: 'success', background: '#0f172a', color: '#e2e8f0', timer: 1500, showConfirmButton: false });
+      Swal.fire({ title: 'Terhapus!', icon: 'success', background: '#0f172a', color: '#e2e8f0', timer: 1500, showConfirmButton: false });
     }
   };
 
@@ -66,9 +63,7 @@ export default function Home() {
   );
 
   return (
-    <>
-      <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-      <div className="min-h-screen bg-slate-950 text-white p-6 md:p-12">
+    <div className="min-h-screen bg-slate-950 text-white p-6 md:p-12">
         <div className="max-w-4xl mx-auto">
 
           {/* Header */}
@@ -169,6 +164,5 @@ export default function Home() {
 
         </div>
       </div>
-    </>
   );
 }

@@ -4,10 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePinGuard } from '@/hooks/usePinGuard';
 import PinGate from '@/components/PinGate';
-
-declare global {
-  interface Window { Swal: any; }
-}
+import Swal from 'sweetalert2';
 
 export default function RegisterCustomer() {
   const { authed, checking, pin: guardPin, setPin: setGuardPin, error: guardError, loading: guardLoading, submitPin } = usePinGuard();
@@ -21,9 +18,7 @@ export default function RegisterCustomer() {
   const [typeInput, setTypeInput] = useState<'diskusi' | 'tugas'>('diskusi');
   const [priceInput, setPriceInput] = useState(8000);
 
-  const swal = (opts: any) => {
-    if (typeof window !== 'undefined' && window.Swal) return window.Swal.fire(opts);
-  };
+  const swal = (opts: any) => Swal.fire(opts);
 
   const addCourse = () => {
     if (!currentCourseName || !sessionsInput) {
@@ -76,9 +71,7 @@ export default function RegisterCustomer() {
   );
 
   return (
-    <>
-      <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-      <div className="min-h-screen bg-slate-950 text-white p-6 md:p-12">
+    <div className="min-h-screen bg-slate-950 text-white p-6 md:p-12">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <a href="/" className="text-slate-500 hover:text-slate-300 text-xs transition">← Dashboard</a>
@@ -153,6 +146,5 @@ export default function RegisterCustomer() {
           </div>
         </div>
       </div>
-    </>
   );
 }

@@ -4,18 +4,19 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePinGuard } from '@/hooks/usePinGuard';
 import PinGate from '@/components/PinGate';
-
-declare global {
-  interface Window { Swal: any; }
-}
+import Swal from 'sweetalert2';
+import {
+  BookOpen, Clock, CheckCircle, PenLine, ListOrdered,
+  Trash2, Plus, X, ExternalLink, ChevronDown, ChevronRight,
+} from 'lucide-react';
 
 type WorkStatus = 'antrian' | 'waiting' | 'done' | 'revisi';
 
-const STATUS_CONFIG: Record<WorkStatus, { label: string; icon: string; selectCls: string }> = {
-  antrian: { label: 'Antrian',      icon: '⏳', selectCls: 'bg-slate-800 text-slate-300 border-slate-600' },
-  waiting: { label: 'Waiting List', icon: '🕐', selectCls: 'bg-amber-950 text-amber-300 border-amber-700' },
-  done:    { label: 'Selesai',      icon: '✓',  selectCls: 'bg-emerald-950 text-emerald-300 border-emerald-700' },
-  revisi:  { label: 'Revisi',       icon: '✎',  selectCls: 'bg-rose-950 text-rose-300 border-rose-700' },
+const STATUS_CONFIG: Record<WorkStatus, { label: string; icon: React.ReactNode; selectCls: string }> = {
+  antrian: { label: 'Antrian',      icon: <ListOrdered size={11} />, selectCls: 'bg-slate-800 text-slate-300 border-slate-600' },
+  waiting: { label: 'Waiting List', icon: <Clock size={11} />,       selectCls: 'bg-amber-950 text-amber-300 border-amber-700' },
+  done:    { label: 'Selesai',      icon: <CheckCircle size={11} />, selectCls: 'bg-emerald-950 text-emerald-300 border-emerald-700' },
+  revisi:  { label: 'Revisi',       icon: <PenLine size={11} />,     selectCls: 'bg-rose-950 text-rose-300 border-rose-700' },
 };
 
 export default function AdminControl({ params }: { params: { slug: string } }) {
@@ -37,9 +38,7 @@ export default function AdminControl({ params }: { params: { slug: string } }) {
 
   useEffect(() => { fetchStatus(); }, [params.slug]);
 
-  const swal = (opts: any) => {
-    if (typeof window !== 'undefined' && window.Swal) return window.Swal.fire(opts);
-  };
+  const swal = (opts: any) => Swal.fire(opts);
 
   const toggleCourse = (idx: number) => {
     setOpenCourses(prev => {
@@ -74,7 +73,7 @@ export default function AdminControl({ params }: { params: { slug: string } }) {
   };
 
   const handleDeleteCustomer = async () => {
-    const result = await window.Swal.fire({
+    const result = await Swal.fire({
       title: `Hapus klien "${customer.name}"?`,
       text: 'Semua data matkul dan sesi akan ikut terhapus permanen!',
       icon: 'warning', showCancelButton: true,
@@ -84,13 +83,13 @@ export default function AdminControl({ params }: { params: { slug: string } }) {
     });
     if (result.isConfirmed) {
       await fetch(`/api/customer/${params.slug}`, { method: 'DELETE' });
-      await window.Swal.fire({ title: 'Terhapus!', icon: 'success', background: '#0f172a', color: '#e2e8f0', timer: 1500, showConfirmButton: false });
+      await Swal.fire({ title: 'Terhapus!', icon: 'success', background: '#0f172a', color: '#e2e8f0', timer: 1500, showConfirmButton: false });
       router.push('/');
     }
   };
 
   const handleDeleteCourse = async (cIdx: number, courseName: string) => {
-    const result = await window.Swal.fire({
+    const result = await Swal.fire({
       title: `Hapus matkul "${courseName}"?`, text: 'Semua sesi ikut terhapus.',
       icon: 'warning', showCancelButton: true,
       confirmButtonColor: '#ef4444', cancelButtonColor: '#475569',
@@ -159,14 +158,13 @@ export default function AdminControl({ params }: { params: { slug: string } }) {
 
   return (
     <>
-      <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
       <div className="min-h-screen bg-slate-950 text-slate-100">
 
         {/* Sticky header */}
         <div className="border-b border-slate-800 bg-slate-950/80 sticky top-0 z-10 backdrop-blur">
           <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <a href="/" className="text-slate-500 hover:text-slate-300 text-xs transition">← Dashboard</a>
+              <a href="/" className="text-slate-500 hover:text-slate-300 text-xs transition flex items-center gap-1">← Dashboard</a>
               <span className="text-slate-700">|</span>
               <div>
                 <span className="text-rose-400 font-bold text-sm">Admin Panel</span>
@@ -174,11 +172,11 @@ export default function AdminControl({ params }: { params: { slug: string } }) {
               </div>
             </div>
             <div className="flex gap-2">
-              <a href={`/track/${params.slug}`} target="_blank" className="bg-slate-900 border border-slate-700 hover:border-slate-600 px-3 py-1.5 rounded-lg text-xs transition">
-                Lihat Halaman Klien ↗
+              <a href={`/track/${params.slug}`} target="_blank" className="bg-slate-900 border border-slate-700 hover:border-slate-600 px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5">
+                Lihat Halaman Klien <ExternalLink size={11} />
               </a>
-              <button onClick={handleDeleteCustomer} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                Hapus Klien
+              <button onClick={handleDeleteCustomer} className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+                <Trash2 size={11} /> Hapus Klien
               </button>
             </div>
           </div>
@@ -212,7 +210,7 @@ export default function AdminControl({ params }: { params: { slug: string } }) {
           {/* Mini status legend */}
           <div className="flex gap-2 flex-wrap mb-6">
             {(Object.entries(STATUS_CONFIG) as [WorkStatus, typeof STATUS_CONFIG[WorkStatus]][]).map(([key, cfg]) => (
-              <span key={key} className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${cfg.selectCls}`}>
+              <span key={key} className={`text-[10px] px-2.5 py-1 rounded-full font-bold border flex items-center gap-1 ${cfg.selectCls}`}>
                 {cfg.icon} {cfg.label}
               </span>
             ))}
@@ -230,8 +228,8 @@ export default function AdminControl({ params }: { params: { slug: string } }) {
                 <button onClick={() => setOpenCourses(new Set())} className="text-[10px] text-slate-500 hover:text-slate-300 border border-slate-800 px-2 py-1 rounded-lg transition">Tutup Semua</button>
               </div>
             </div>
-            <button onClick={() => setShowAddCourse(!showAddCourse)} className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
-              {showAddCourse ? '✕ Tutup' : '+ Tambah Matkul'}
+            <button onClick={() => setShowAddCourse(!showAddCourse)} className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+              {showAddCourse ? <><X size={12} /> Tutup</> : <><Plus size={12} /> Tambah Matkul</>}
             </button>
           </div>
 
@@ -279,9 +277,9 @@ export default function AdminControl({ params }: { params: { slug: string } }) {
                   <div className="flex items-center">
                     <button onClick={() => toggleCourse(cIdx)} className="flex-1 px-4 py-3 flex items-center justify-between hover:bg-slate-800/60 transition text-left">
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-slate-500 text-xs">{isOpen ? '▼' : '▶'}</span>
+                        <span className="text-slate-500 text-xs">{isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</span>
                         <div className="min-w-0">
-                          <p className="text-sm font-bold text-white truncate">📚 {course.courseName}</p>
+                          <p className="text-sm font-bold text-white truncate flex items-center gap-1.5"><BookOpen size={13} className="text-indigo-400 shrink-0" /> {course.courseName}</p>
                           <p className="text-[10px] text-slate-500 mt-0.5">
                             {course.sessions.length} sesi · {courseDone} selesai · Rp {coursePaid.toLocaleString('id-ID')} / Rp {courseTotal.toLocaleString('id-ID')}
                           </p>
@@ -296,8 +294,8 @@ export default function AdminControl({ params }: { params: { slug: string } }) {
                         </span>
                       </div>
                     </button>
-                    <button onClick={() => handleDeleteCourse(cIdx, course.courseName)} className="px-3 py-3 text-rose-500 hover:text-rose-400 hover:bg-rose-500/5 transition text-xs font-bold border-l border-slate-800">
-                      Hapus
+                    <button onClick={() => handleDeleteCourse(cIdx, course.courseName)} className="px-3 py-3 text-rose-500 hover:text-rose-400 hover:bg-rose-500/5 transition text-xs font-bold border-l border-slate-800 flex items-center gap-1">
+                      <Trash2 size={12} /> Hapus
                     </button>
                   </div>
 
@@ -324,15 +322,15 @@ export default function AdminControl({ params }: { params: { slug: string } }) {
                                 className={`px-2 py-1 rounded-lg font-bold text-[11px] border cursor-pointer focus:outline-none transition ${STATUS_CONFIG[st].selectCls}`}
                               >
                                 {(Object.entries(STATUS_CONFIG) as [WorkStatus, typeof STATUS_CONFIG[WorkStatus]][]).map(([key, cfg]) => (
-                                  <option key={key} value={key}>{cfg.icon} {cfg.label}</option>
+                                  <option key={key} value={key}>{cfg.label}</option>
                                 ))}
                               </select>
                               {/* Paid button */}
                               <button
                                 onClick={() => togglePaid(cIdx, sIdx, session.isPaid)}
-                                className={`px-2.5 py-1 rounded-lg font-bold transition text-[11px] w-[68px] ${session.isPaid ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                                className={`px-2.5 py-1 rounded-lg font-bold transition text-[11px] w-[68px] flex items-center justify-center gap-1 ${session.isPaid ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
                               >
-                                {session.isPaid ? '✓ Lunas' : 'Belum'}
+                                {session.isPaid ? <><CheckCircle size={10} /> Lunas</> : 'Belum'}
                               </button>
                             </div>
                           </div>

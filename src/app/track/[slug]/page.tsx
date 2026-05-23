@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { BookOpen, CalendarDays, Clock, CheckCircle, RefreshCw, AlertCircle } from 'lucide-react';
+import useSWR from 'swr';
+import { useState } from 'react';
 import CustomerNotFound from '@/components/CustomerNotFound';
 
 type WorkStatus = 'antrian' | 'waiting' | 'done' | 'revisi';
@@ -12,26 +14,17 @@ const STATUS_BADGE: Record<WorkStatus, { label: string; cls: string }> = {
   revisi:  { label: 'Revisi',       cls: 'bg-rose-500/20 text-rose-300 border border-rose-600/40' },
 };
 
+const fetcher = (url: string) => fetch(url).then(r => r.json()).then(d => d.success ? d.data : null);
+
 export default function TrackCustomer({ params }: { params: { slug: string } }) {
-  const [customer, setCustomer] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: customer, isLoading } = useSWR(
+    `/api/customer/${params.slug}`,
+    fetcher,
+    { refreshInterval: 4000, revalidateOnFocus: true }
+  );
+
   const [openCourses, setOpenCourses] = useState<Set<number>>(new Set());
   const [activeTab, setActiveTab] = useState<'matkul' | 'persesi'>('matkul');
-
-  const fetchStatus = async () => {
-    try {
-      const res = await fetch(`/api/customer/${params.slug}`);
-      const data = await res.json();
-      if (data.success) setCustomer(data.data);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => {
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 4000);
-    return () => clearInterval(interval);
-  }, [params.slug]);
 
   const toggleCourse = (idx: number) => {
     setOpenCourses(prev => {
@@ -41,7 +34,7 @@ export default function TrackCustomer({ params }: { params: { slug: string } }) 
     });
   };
 
-  if (loading) return (
+  if (isLoading) return (
     <div className="flex justify-center items-center h-screen bg-slate-900 text-white">
       <div className="text-center">
         <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
@@ -144,11 +137,11 @@ export default function TrackCustomer({ params }: { params: { slug: string } }) 
 
           {/* Tabs */}
           <div className="flex gap-1 bg-slate-800/60 p-1 rounded-xl border border-slate-700/40 mb-4">
-            <button onClick={() => setActiveTab('matkul')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${activeTab === 'matkul' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>
-              📚 Per Matkul ({customer.courses.length})
+            <button onClick={() => setActiveTab('matkul')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${activeTab === 'matkul' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>
+              <BookOpen size={12} /> Per Matkul ({customer.courses.length})
             </button>
-            <button onClick={() => setActiveTab('persesi')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${activeTab === 'persesi' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>
-              🗓️ Per Sesi ({sesiGroups.length})
+            <button onClick={() => setActiveTab('persesi')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${activeTab === 'persesi' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>
+              <CalendarDays size={12} /> Per Sesi ({sesiGroups.length})
             </button>
           </div>
 
@@ -174,13 +167,15 @@ export default function TrackCustomer({ params }: { params: { slug: string } }) 
                         <div className="flex items-center gap-3 min-w-0">
                           <span className="text-slate-500 text-xs">{isOpen ? '▼' : '▶'}</span>
                           <div className="min-w-0">
-                            <p className="text-sm font-bold text-white truncate">📚 {course.courseName}</p>
+                            <p className="text-sm font-bold text-white truncate flex items-center gap-1.5">
+                              <BookOpen size={13} className="text-indigo-400 shrink-0" /> {course.courseName}
+                            </p>
                             <p className="text-[10px] text-slate-500 mt-0.5">{course.sessions.length} sesi · Rp {cPaid.toLocaleString('id-ID')} / Rp {cTotal.toLocaleString('id-ID')}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 ml-3 shrink-0">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${cDone === course.sessions.length ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>
-                            {cDone}/{course.sessions.length} ✓
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${cDone === course.sessions.length ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>
+                            {cDone}/{course.sessions.length} <CheckCircle size={10} />
                           </span>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${cPaid >= cTotal ? 'bg-indigo-500/20 text-indigo-400' : 'bg-rose-500/10 text-rose-400'}`}>
                             {cPaid >= cTotal ? 'Lunas' : `${Math.round((cPaid/cTotal)*100)}%`}
@@ -242,13 +237,15 @@ export default function TrackCustomer({ params }: { params: { slug: string } }) 
                     <div key={sesiNum} className="bg-slate-800 rounded-xl border border-slate-700/80 overflow-hidden">
                       <div className="px-4 py-3 flex items-center justify-between border-b border-slate-700/60 bg-slate-800/80">
                         <div>
-                          <p className="text-sm font-black text-white">Sesi {sesiNum}</p>
+                          <p className="text-sm font-black text-white flex items-center gap-1.5">
+                            <Clock size={13} className="text-indigo-400" /> Sesi {sesiNum}
+                          </p>
                           <p className="text-[10px] text-slate-500 mt-0.5">{group.items.length} matkul · {lunasCount}/{group.items.length} lunas</p>
                         </div>
                         <div className="text-right">
                           <p className="text-base font-black text-indigo-300">Rp {group.totalPrice.toLocaleString('id-ID')}</p>
-                          <p className={`text-[10px] font-bold mt-0.5 ${lunasSemua ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {lunasSemua ? '✓ Lunas semua' : `Rp ${group.totalPaid.toLocaleString('id-ID')} masuk`}
+                          <p className={`text-[10px] font-bold mt-0.5 flex items-center justify-end gap-1 ${lunasSemua ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {lunasSemua ? <><CheckCircle size={10} /> Lunas semua</> : `Rp ${group.totalPaid.toLocaleString('id-ID')} masuk`}
                           </p>
                         </div>
                       </div>
@@ -258,7 +255,7 @@ export default function TrackCustomer({ params }: { params: { slug: string } }) 
                           return (
                             <div key={idx} className="flex items-center justify-between px-4 py-2.5 text-xs hover:bg-slate-700/20">
                               <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-slate-600">📚</span>
+                                <BookOpen size={11} className="text-slate-600 shrink-0" />
                                 <span className="text-slate-300 font-medium truncate">{item.courseName}</span>
                                 <span className="text-slate-600">·</span>
                                 <span className="text-slate-500 capitalize">{item.type}</span>
@@ -287,7 +284,9 @@ export default function TrackCustomer({ params }: { params: { slug: string } }) 
             </>
           )}
 
-          <p className="text-center text-[10px] text-slate-700 mt-8">Auto-refresh setiap 4 detik</p>
+          <p className="text-center text-[10px] text-slate-700 mt-8 flex items-center justify-center gap-1">
+            <RefreshCw size={9} /> Auto-refresh setiap 4 detik · pause otomatis saat tab tidak aktif
+          </p>
         </div>
       </div>
 
