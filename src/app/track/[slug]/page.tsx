@@ -1,9 +1,19 @@
 'use client';
 
-import { BookOpen, CalendarDays, Clock, CheckCircle, RefreshCw, AlertCircle } from 'lucide-react';
+import { BookOpen, CalendarDays, Clock, CheckCircle, RefreshCw, CreditCard, QrCode, Copy, MessageCircle, ChevronDown } from 'lucide-react';
 import useSWR from 'swr';
 import { useState } from 'react';
+
+const PAYMENT_METHODS = [
+  { id: 'seabank',  label: 'SeaBank',  number: '901896192684',   holder: 'M.Riki Hidayat', color: 'from-sky-500 to-cyan-400',    icon: '🏦' },
+  { id: 'jago',     label: 'Jago',     number: '106458739491',   holder: 'M.Riki Hidayat', color: 'from-orange-500 to-amber-400', icon: '🐆' },
+  { id: 'dana',     label: 'Dana',     number: '081281939653',   holder: 'M.Riki Hidayat', color: 'from-blue-500 to-indigo-400',  icon: '💙' },
+  { id: 'gopay',    label: 'GoPay',    number: '081281939653',   holder: 'M.Riki Hidayat', color: 'from-green-500 to-emerald-400',icon: '💚' },
+];
+
+const WA_NUMBER = '081281939653';
 import CustomerNotFound from '@/components/CustomerNotFound';
+
 
 type WorkStatus = 'antrian' | 'waiting' | 'done' | 'revisi';
 
@@ -25,6 +35,17 @@ export default function TrackCustomer({ params }: { params: { slug: string } }) 
 
   const [openCourses, setOpenCourses] = useState<Set<number>>(new Set());
   const [activeTab, setActiveTab] = useState<'matkul' | 'persesi'>('matkul');
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+  const [showQris, setShowQris] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  };
 
   const toggleCourse = (idx: number) => {
     setOpenCourses(prev => {
@@ -134,6 +155,16 @@ export default function TrackCustomer({ params }: { params: { slug: string } }) 
               ))}
             </div>
           </div>
+
+          {/* Tombol Bayar */}
+          {sisaTagihan > 0 && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="w-full mb-3 py-2.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-500 hover:to-emerald-400 transition text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-green-900/30"
+            >
+              <CreditCard size={15} /> Bayar Sekarang · Rp {sisaTagihan.toLocaleString('id-ID')}
+            </button>
+          )}
 
           {/* Tabs */}
           <div className="flex gap-1 bg-slate-800/60 p-1 rounded-xl border border-slate-700/40 mb-4">
@@ -284,11 +315,104 @@ export default function TrackCustomer({ params }: { params: { slug: string } }) 
             </>
           )}
 
-          <p className="text-center text-[10px] text-slate-700 mt-8 flex items-center justify-center gap-1">
+          <p className="text-center text-[10px] text-slate-700 mt-6 flex items-center justify-center gap-1">
             <RefreshCw size={9} /> Auto-refresh setiap 4 detik · pause otomatis saat tab tidak aktif
           </p>
         </div>
       </div>
+
+      {/* ══ PAYMENT MODAL ══ */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+
+          {/* Sheet */}
+          <div className="relative w-full sm:max-w-md bg-slate-900 border border-slate-700/60 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden z-10 max-h-[90dvh] flex flex-col">
+
+            {/* Handle bar (mobile) */}
+            <div className="flex justify-center pt-3 pb-1 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-slate-700" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+              <div>
+                <p className="font-black text-white text-base flex items-center gap-2"><CreditCard size={16} className="text-indigo-400" /> Cara Pembayaran</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Sisa tagihan: <span className="text-indigo-300 font-bold">Rp {sisaTagihan.toLocaleString('id-ID')}</span></p>
+              </div>
+              <button onClick={() => setShowModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 transition text-slate-400">
+                ✕
+              </button>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
+
+              {/* Transfer methods */}
+              {PAYMENT_METHODS.map((m) => (
+                <div key={m.id} className={`rounded-xl border transition-all overflow-hidden ${selectedMethod === m.id ? 'border-indigo-500/60 bg-slate-800' : 'border-slate-700/50 bg-slate-800/60'}`}>
+                  <button className="w-full px-4 py-3 flex items-center justify-between" onClick={() => setSelectedMethod(selectedMethod === m.id ? null : m.id)}>
+                    <div className="flex items-center gap-3">
+                      <span className={`w-8 h-8 rounded-lg bg-gradient-to-br ${m.color} flex items-center justify-center text-sm font-black shadow`}>{m.icon}</span>
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-white">{m.label}</p>
+                        <p className="text-[10px] text-slate-400">{m.holder}</p>
+                      </div>
+                    </div>
+                    <ChevronDown size={14} className={`text-slate-500 transition-transform ${selectedMethod === m.id ? 'rotate-180' : ''}`} />
+                  </button>
+                  {selectedMethod === m.id && (
+                    <div className="px-4 pb-3 border-t border-slate-700/50 pt-3">
+                      <div className="bg-slate-900/60 rounded-lg px-3 py-2 flex items-center justify-between">
+                        <span className="text-base font-black text-white tracking-wider">{m.number}</span>
+                        <button onClick={() => copyToClipboard(m.number, m.id)} className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg transition ${copied === m.id ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                          <Copy size={10} /> {copied === m.id ? 'Tersalin!' : 'Salin'}
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1.5">a/n {m.holder}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* QRIS */}
+              <div className={`rounded-xl border transition-all overflow-hidden ${showQris ? 'border-purple-500/60 bg-slate-800' : 'border-slate-700/50 bg-slate-800/60'}`}>
+                <button className="w-full px-4 py-3 flex items-center justify-between" onClick={() => setShowQris(!showQris)}>
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-400 flex items-center justify-center shadow">
+                      <QrCode size={16} className="text-white" />
+                    </span>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-white">QRIS</p>
+                      <p className="text-[10px] text-slate-400">Scan pakai aplikasi apapun</p>
+                    </div>
+                  </div>
+                  <ChevronDown size={14} className={`text-slate-500 transition-transform ${showQris ? 'rotate-180' : ''}`} />
+                </button>
+                {showQris && (
+                  <div className="px-4 pb-4 border-t border-slate-700/50 pt-4 flex flex-col items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/qris.jpg" alt="QRIS M.Riki Hidayat" className="w-48 rounded-xl border border-slate-600 shadow-lg" />
+                    <p className="text-[10px] text-slate-500 text-center">Scan dengan GoPay, Dana, OVO, SPAY, atau mobile banking</p>
+                  </div>
+                )}
+              </div>
+
+              {/* WA button */}
+              <a
+                href={`https://wa.me/62${WA_NUMBER.replace(/^0/, '')}?text=${encodeURIComponent(`Halo Riki, saya sudah transfer pembayaran untuk joki a/n ${customer.name}. Mohon dikonfirmasi ya 🙏`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-500 hover:to-emerald-400 transition text-white font-bold text-sm shadow-lg shadow-green-900/30"
+              >
+                <MessageCircle size={15} /> Konfirmasi via WhatsApp
+              </a>
+              <p className="text-center text-[10px] text-slate-600 pb-2">Setelah transfer, tap tombol di atas untuk konfirmasi ke Riki</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-slate-800 py-4 mt-4">
